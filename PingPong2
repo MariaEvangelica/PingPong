@@ -1,0 +1,138 @@
+import pygame
+import sys
+from pygame.locals import *
+FPS = 40
+kecepatan = 5
+lebar = 400
+panjang = 300
+tebal_garis = 10
+ukuran = 50
+keseimbangan = 20
+display = pygame.display.set_mode((950, 570))
+pygame.display.set_caption("PING!")
+background = pygame.image.load("bg7.jpg")
+display.blit(background, (0, 0))
+raket1 = pygame.image.load("raket1.png")
+display.blit(raket1, (0, 250))
+raket2 = pygame.image.load("raket2.png")
+display.blit(raket2, (830, 250))
+bola = pygame.image.load("bolatenis1.png")
+display.blit(bola, (90, 270))
+exit = pygame.image.load("exit2.png")
+display.blit(exit, (0, 0))
+#moves the ball returns new position
+def moveBall(bola, ballDirX, ballDirY):
+    bola.x += (ballDirX * kecepatan)
+    bola.y += (ballDirY * kecepatan)
+    return bola
+#Checks for a collision with a wall, and 'bounces' ball off it.
+#Returns new direction
+def checkEdgeCollision(bola, ballDirX, ballDirY):
+    if bola.top == (tebal_garis) or bola.bottom == (panjang - tebal_garis):
+        ballDirY = ballDirY * -1
+    if bola.left == (tebal_garis) or bola.right == (lebar - tebal_garis):
+        ballDirX = ballDirX * -1
+    return ballDirX, ballDirY
+
+#Checks is the ball has hit a paddle, and 'bounces' ball off it.
+def checkHitBall(bola, raket1, raket2, ballDirX):
+    if ballDirX == -1 and raket1.right == bola.left and raket1.top < bola.top and raket1.bottom > bola.bottom:
+        return -1
+    elif ballDirX == 1 and raket2.left == bola.right and raket2.top < bola.top and raket2.bottom > bola.bottom:
+        return -1
+    else: return 1
+
+#Checks to see if a point has been scored returns new score
+def checkPointScored(raket1, bola, score, ballDirX):
+    #reset points if left wall is hit
+    if bola.left == tebal_garis:
+        return 0
+    #1 point for hitting the ball
+    elif ballDirX == -1 and raket1.right == bola.left and raket1.top < bola.top and raket1.bottom > bola.bottom:
+        score += 1
+        return score
+    #5 points for beating the other paddle
+    elif bola.right == lebar - tebal_garis:
+        score += 5
+        return score
+    #if no points scored, return score unchanged
+    else: return score
+
+#Artificial Intelligence of computer player
+def artificialIntelligence(bola, ballDirX, raket2):
+    #If ball is moving away from paddle, center bat
+    if ballDirX == -1:
+        if raket2.centery < (panjang/2):
+            raket2.y += kecepatan
+        elif raket2.centery > (panjang/2):
+            raket2.y -= kecepatan
+    #if ball moving towards bat, track its movement.
+    elif ballDirX == 1:
+        if raket2.centery < bola.centery:
+            raket2.y += kecepatan
+        else:
+            raket2.y -= kecepatan
+    return raket2
+WHITE     = (255,255,255)
+#Displays the current score on the screen
+def displayScore(score):
+    resultSurf = BASICFONT.render('Score = %s' %(score), True, WHITE)
+    resultRect = resultSurf.get_rect()
+    resultRect.topleft = (lebar - 150, 25)
+    display.blit(resultSurf, resultRect)
+
+#Main function
+def main():
+    pygame.init()
+    global display
+    ##Font information
+    global BASICFONT, BASICFONTSIZE
+    BASICFONTSIZE = 20
+    BASICFONT = pygame.font.Font('freesansbold.ttf', BASICFONTSIZE)
+
+    FPSCLOCK = pygame.time.Clock()
+    lebar = 1000
+    panjang = 700
+    display = pygame.display.set_mode((lebar,panjang))
+    pygame.display.set_caption("PING!")
+
+    #Initiate variable and set starting positions
+    #any future changes made within rectangles
+    ballX = lebar/2 - tebal_garis/2
+    ballY = panjang/2 - tebal_garis/2
+    playerposisilesatu = (panjang - ukuran) /2
+    playerposisikedua = (panjang - ukuran) /2
+    score = 0
+
+    #Keeps track of ball direction
+    ballDirX = -1 ## -1 = left 1 = right
+    ballDirY = -1 ## -1 = up 1 = down
+
+    #Creates Rectangles for ball and paddles.
+    raket1 = pygame.Rect(keseimbangan,playerposisilesatu, tebal_garis,ukuran)
+    raket2 = pygame.Rect(lebar - keseimbangan - tebal_garis, playerposisikedua, tebal_garis,ukuran)
+    bola = pygame.Rect(ballX, ballY, tebal_garis, tebal_garis)
+
+    pygame.mouse.set_visible(0) # make cursor invisible
+
+    while True: #main game loop
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+            # mouse movement commands
+            elif event.type == MOUSEMOTION:
+                mousex, mousey = event.pos
+                raket1.y = mousey
+
+        bola = moveBall(bola, ballDirX, ballDirY)
+        ballDirX, ballDirY = checkEdgeCollision(bola, ballDirX, ballDirY)
+        score = checkPointScored(raket1, bola, score, ballDirX)
+        ballDirX = ballDirX * checkHitBall(bola, raket1, raket2, ballDirX)
+        raket2 = artificialIntelligence (bola, ballDirX, raket2)
+
+        pygame.display.update()
+        FPSCLOCK.tick(FPS)
+
+if __name__=='__main__':
+    main()
